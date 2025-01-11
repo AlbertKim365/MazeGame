@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maze Game</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        gap: 20px;
+        background-image: url("image/main-bg.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: #f9f9f9;
+        height: 100vh;
+        overflow: hidden;
+      }
+      #titleContainer {
+        position: absolute;
+        top: 85px;
+        left: 350px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+      .title-char {
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        font-size: 2rem;
+        font-weight: bold;
+        color: #f9f9f9;
+      }
+      #gameContainer {
+        display: flex;
+        gap: 20px;
+      }
+      #gameCanvas {
+        border: 2px solid #222;
+        background-color: #000;
+      }
+      #instructions {
+        width: 200px;
+        padding: 10px 20px;
+        border: 2px solid #222;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        font-size: 16px;
+        color: #333;
+        text-align: center;
+      }
+      #timeLeft {
+        margin-top: 10px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      #gameOver {
+        position: absolute;
+        top: 50%;
+        left: 52%;
+        transform: translate(-50%, -50%);
+        font-size: 12rem;
+        font-weight: bold;
+        color: red;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="titleContainer">
+      <div class="title-char">미</div>
+      <div class="title-char">로</div>
+      <div class="title-char">게</div>
+      <div class="title-char">임</div>
+    </div>
+    <div id="gameContainer">
+      <canvas id="gameCanvas"></canvas>
+      <div id="instructions">
+        <p><strong>Instructions:</strong></p>
+        <p>Use arrow keys to move.</p>
+        <p>Press <strong>R</strong> to restart.</p>
+        <div id="timeLeft">Time Left: 10</div>
+      </div>
+    </div>
+    <div id="gameOver">GAME OVER</div>
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 800;
+      canvas.height = 800;
+
+      const mazeRows = 19;
+      const mazeCols = 19;
+      const cellSize = canvas.width / mazeCols;
+
+      let maze = Array.from({ length: mazeRows }, () =>
+        Array(mazeCols).fill(1)
+      );
+
+      const directions = [
+        [-1, 0], // 위
+        [1, 0], // 아래
+        [0, -1], // 왼쪽
+        [0, 1], // 오른쪽
+      ];
+
+      function generateMaze(x, y) {
+        maze[y][x] = 0;
+        const shuffledDirections = directions.sort(() => Math.random() - 0.5);
+
+        shuffledDirections.forEach(([dx, dy]) => {
+          const nx = x + dx * 2;
+          const ny = y + dy * 2;
+
+          if (
+            nx > 0 &&
+            nx < mazeCols - 1 &&
+            ny > 0 &&
+            ny < mazeRows - 1 &&
+            maze[ny][nx] === 1
+          ) {
+            maze[y + dy][x + dx] = 0;
+            generateMaze(nx, ny);
+          }
+        });
+      }
+
+      function initMaze() {
+        maze = Array.from({ length: mazeRows }, () => Array(mazeCols).fill(1));
+        generateMaze(1, 1);
+        maze[mazeRows - 2][mazeCols - 2] = 0;
+      }
+
+      const player = { x: 1, y: 1 };
+      const goal = { x: mazeCols - 2, y: mazeRows - 2 };
+
+      let timeLeft = 10;
+      let gameOver = false;
+      let timerInterval;
+
+      document.addEventListener("keydown", (event) => {
+        if (gameOver) return;
+
+        const { x, y } = player;
+        switch (event.key) {
+          case "ArrowUp":
+            if (maze[y - 1][x] === 0) player.y--;
+            break;
+          case "ArrowDown":
+            if (maze[y + 1][x] === 0) player.y++;
+            break;
+          case "ArrowLeft":
+            if (maze[y][x - 1] === 0) player.x--;
+            break;
+          case "ArrowRight":
+            if (maze[y][x + 1] === 0) player.x++;
+            break;
+          case "r":
+            resetGame();
+            break;
+        }
+
+        if (player.x === goal.x && player.y === goal.y) {
+          alert("You Win!");
+          resetGame();
+        }
+      });
+
+      function resetGame() {
+        player.x = 1;
+        player.y = 1;
+        initMaze();
+        timeLeft = 10;
+        gameOver = false;
+        document.getElementById("gameOver").style.display = "none";
+
+        clearInterval(timerInterval);
+        startTimer();
+        gameLoop();
+      }
+
+      function startTimer() {
+        timerInterval = setInterval(() => {
+          if (timeLeft > 0) {
+            timeLeft--;
+            document.getElementById(
+              "timeLeft"
+            ).textContent = `Time Left: ${timeLeft}`;
+          } else {
+            document.getElementById("gameOver").style.display = "block";
+            gameOver = true;
+            clearInterval(timerInterval);
+          }
+        }, 1000);
+      }
+
+      function drawMaze() {
+        maze.forEach((row, rowIndex) => {
+          row.forEach((cell, colIndex) => {
+            ctx.fillStyle = cell === 1 ? "#fff" : "#000";
+            ctx.fillRect(
+              colIndex * cellSize,
+              rowIndex * cellSize,
+              cellSize,
+              cellSize
+            );
+          });
+        });
+      }
+
+      let playerImage = new Image();
+      playerImage.src = "image/player.png";
+
+      function drawPlayer() {
+        ctx.drawImage(
+          playerImage,
+          player.x * cellSize,
+          player.y * cellSize,
+          cellSize,
+          cellSize
+        );
+      }
+
+      let goalImage = new Image();
+      goalImage.src = "image/goal.png";
+
+      goalImage.onload = () => {
+        function drawGoal() {
+          ctx.drawImage(
+            goalImage,
+            goal.x * cellSize,
+            goal.y * cellSize,
+            cellSize,
+            cellSize
+          );
+        }
+
+        function gameLoop() {
+          if (gameOver) return;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          drawMaze();
+          drawPlayer();
+          drawGoal();
+          drawInstructions();
+          requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+      };
+
+      function drawInstructions() {
+        document.getElementById(
+          "timeLeft"
+        ).textContent = `Time Left: ${timeLeft}`;
+      }
+
+      function displayBeginMessage() {
+        const beginMessage = document.createElement("div");
+        beginMessage.textContent = "Begin!";
+        beginMessage.style.position = "absolute";
+        beginMessage.style.top = "50%";
+        beginMessage.style.left = "44%";
+        beginMessage.style.transform = "translate(-50%, -50%)";
+        beginMessage.style.fontSize = "12rem";
+        beginMessage.style.fontWeight = "bold";
+        beginMessage.style.color = "red";
+        document.body.appendChild(beginMessage);
+
+        setTimeout(() => {
+          document.body.removeChild(beginMessage);
+          resetGame(); // 게임 시작
+        }, 1000);
+      }
+
+      displayBeginMessage(); // 게임 시작 전 'Begin!' 메시지 보여주기
+    </script>
+  </body>
+</html>
