@@ -127,6 +127,9 @@
     <!-- 게임 오버 메시지 -->
     <div id="gameOver">GAME OVER</div>
 
+    <!-- 발소리 오디오 -->
+    <audio id="footstepSound" src="sound/E_footsteps.mp3"></audio>
+
     <script>
       // 게임 캔버스 설정
       const canvas = document.getElementById("gameCanvas");
@@ -174,53 +177,79 @@
         });
       }
 
-      // 미로 초기화
       function initMaze() {
         maze = Array.from({ length: mazeRows }, () => Array(mazeCols).fill(1));
         generateMaze(1, 1);
         maze[mazeRows - 2][mazeCols - 2] = 0; // 목표 지점 설정
       }
 
-      // 플레이어 및 목표 설정
       const player = { x: 1, y: 1 };
       const goal = { x: mazeCols - 2, y: mazeRows - 2 };
-
-      // 게임 시간
       let timeLeft = 60;
       let gameOver = false;
       let timerInterval;
 
-      // 키 입력에 따른 플레이어 이동
+      const footstepSound = document.getElementById("footstepSound");
+
+      function playFootstepSound() {
+        if (footstepSound.paused) {
+          footstepSound.currentTime = 0;
+          footstepSound.play();
+        }
+      }
+
+      function stopFootstepSound() {
+        footstepSound.pause();
+      }
+
       document.addEventListener("keydown", (event) => {
         if (gameOver) return;
 
         const { x, y } = player;
+        let moved = false;
+
         switch (event.key) {
           case "ArrowUp":
-            if (maze[y - 1][x] === 0) player.y--;
+            if (maze[y - 1][x] === 0) {
+              player.y--;
+              moved = true;
+            }
             break;
           case "ArrowDown":
-            if (maze[y + 1][x] === 0) player.y++;
+            if (maze[y + 1][x] === 0) {
+              player.y++;
+              moved = true;
+            }
             break;
           case "ArrowLeft":
-            if (maze[y][x - 1] === 0) player.x--;
+            if (maze[y][x - 1] === 0) {
+              player.x--;
+              moved = true;
+            }
             break;
           case "ArrowRight":
-            if (maze[y][x + 1] === 0) player.x++;
+            if (maze[y][x + 1] === 0) {
+              player.x++;
+              moved = true;
+            }
             break;
           case "r":
             resetGame();
             break;
         }
 
-        // 목표 지점에 도달하면 게임 종료
+        if (moved) {
+          playFootstepSound();
+        } else {
+          stopFootstepSound();
+        }
+
         if (player.x === goal.x && player.y === goal.y) {
           alert("You Win!");
           resetGame();
         }
       });
 
-      // 게임 초기화 함수
       function resetGame() {
         player.x = 1;
         player.y = 1;
@@ -234,20 +263,13 @@
         gameLoop();
       }
 
-      // 타이머 시작 함수
       function startTimer() {
         timerInterval = setInterval(() => {
           if (timeLeft > 0) {
             timeLeft--;
             const timeDisplay = document.getElementById("timeLeft");
-
-            // 타이머 값에 따라 색상 변경
-            if (timeLeft <= 20) {
-              timeDisplay.style.color = "red"; // 20초 이하: 빨간색
-            } else if (timeLeft <= 40) {
-              timeDisplay.style.color = "black"; // 40초 이하: 검은색
-            }
-
+            timeDisplay.style.color =
+              timeLeft <= 20 ? "red" : timeLeft <= 40 ? "black" : "green";
             timeDisplay.textContent = `Time Left: ${timeLeft}`;
           } else {
             document.getElementById("gameOver").style.display = "block";
@@ -257,7 +279,6 @@
         }, 1000);
       }
 
-      // 미로 그리기 함수
       function drawMaze() {
         const wallImage = new Image();
         wallImage.src = "image/P_wall.png";
@@ -284,11 +305,9 @@
         });
       }
 
-      // 플레이어 이미지 설정
       let playerImage = new Image();
       playerImage.src = "image/player.png";
 
-      // 플레이어 그리기 함수
       function drawPlayer() {
         ctx.drawImage(
           playerImage,
@@ -299,11 +318,9 @@
         );
       }
 
-      // 목표 이미지 설정
       let goalImage = new Image();
       goalImage.src = "image/goal.png";
 
-      // 목표 그리기 함수
       goalImage.onload = () => {
         function drawGoal() {
           ctx.drawImage(
@@ -315,7 +332,6 @@
           );
         }
 
-        // 게임 루프
         function gameLoop() {
           if (gameOver) return;
 
@@ -323,32 +339,19 @@
           drawMaze();
           drawPlayer();
           drawGoal();
-          drawInstructions();
           requestAnimationFrame(gameLoop);
         }
 
         gameLoop();
       };
 
-      // 게임 설명 그리기 함수
-      function drawInstructions() {
-        document.getElementById(
-          "timeLeft"
-        ).textContent = `Time Left: ${timeLeft}`;
-      }
-
-      // 페이지 로드 시 BEGIN! 메시지 깜빡이기
       window.onload = () => {
         let blinkCount = 0;
 
         const blinkInterval = setInterval(() => {
           const beginMessage = document.getElementById("beginMessage");
-          if (beginMessage.style.display === "none") {
-            beginMessage.style.display = "block";
-          } else {
-            beginMessage.style.display = "none";
-          }
-
+          beginMessage.style.display =
+            beginMessage.style.display === "none" ? "block" : "none";
           blinkCount++;
 
           if (blinkCount === 6) {
@@ -356,7 +359,7 @@
             document.getElementById("beginMessage").style.display = "none";
             resetGame();
           }
-        }, 500); // 500ms 간격으로 깜빡임
+        }, 500);
       };
     </script>
   </body>
