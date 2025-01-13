@@ -259,15 +259,27 @@
 
       // 미로 그리기 함수
       function drawMaze() {
+        const wallImage = new Image();
+        wallImage.src = "image/P_wall.png";
         maze.forEach((row, rowIndex) => {
           row.forEach((cell, colIndex) => {
-            ctx.fillStyle = cell === 1 ? "#fff" : "#000";
-            ctx.fillRect(
-              colIndex * cellSize,
-              rowIndex * cellSize,
-              cellSize,
-              cellSize
-            );
+            if (cell === 1) {
+              ctx.drawImage(
+                wallImage,
+                colIndex * cellSize,
+                rowIndex * cellSize,
+                cellSize,
+                cellSize
+              );
+            } else {
+              ctx.fillStyle = "#000";
+              ctx.fillRect(
+                colIndex * cellSize,
+                rowIndex * cellSize,
+                cellSize,
+                cellSize
+              );
+            }
           });
         });
       }
